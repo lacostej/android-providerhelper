@@ -1,3 +1,5 @@
+Note this is a fork of  http://code.google.com/p/providerhelper/
+
 Here are some performance results given the following test code:
 
 // had to make the class static otherwise inner class couldn't get instanciated properly
