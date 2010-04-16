@@ -39,12 +39,15 @@ import android.net.Uri;
  * }
  * </pre>
  * 
- * @see Builder
+ * @see Loader
  */
-public class Reader<T extends Builder> implements Iterator<T>, Iterable<T> {
+public class Reader<T> implements Iterator<T>, Iterable<T> {
+	private Loader<T> loader;
     private Class<T> rowClass;
-    private Method loader;
     private Cursor cursor;
+    private boolean reuseInstances;
+    private Method reset = null; // only used when reusing instances
+    private T reusedInstance; //
     private boolean moreToCome;
 
     /**
@@ -59,14 +62,19 @@ public class Reader<T extends Builder> implements Iterator<T>, Iterable<T> {
      * @param u
      *            The Uri which identifies the Content Provider to load from.
      */
-    public Reader(Class<T> rowClass, Context c, Uri u) {
+    public Reader(Class<T> rowClass, Context c, Uri u, boolean reuseInstances) {
+		this.loader = new Loader<T>();
         this.rowClass = rowClass;
+        this.reuseInstances = reuseInstances;
         try {
-            loader = rowClass.getMethod("load", Cursor.class);
+            if (reuseInstances) {
+            	// FIXME use an interface instead
+    			this.reset = rowClass.getMethod("reset");
+            }
             cursor = c.getContentResolver().query(u, null, null, null, null);
             moreToCome = cursor == null ? false : cursor.moveToFirst();
         } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("When you want to reuse your instances, your class should implement a reset() method.", e);
         }
     }
 
@@ -74,19 +82,13 @@ public class Reader<T extends Builder> implements Iterator<T>, Iterable<T> {
      * Creates a reader given a class to load and a Cursor to read from.
      * 
      * @param The
-     *            class of the object which is to be loaded. Must extend
-     *            Builder.
+     *            class of the object which is to be loaded.
      * @param The
      *            android.database.Cursor to read from.
      */
     public Reader(Class<T> rowClass, Cursor cursor) {
         this.rowClass = rowClass;
         this.cursor = cursor;
-        try {
-            loader = rowClass.getMethod("load", Cursor.class);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
         moreToCome = cursor.moveToFirst();
     }
 
@@ -96,7 +98,18 @@ public class Reader<T extends Builder> implements Iterator<T>, Iterable<T> {
 
     public T next() {
         try {
-            T next = (T) loader.invoke(rowClass.newInstance(), cursor);
+        	T instance;
+    		if (reuseInstances) {
+    			if (this.reusedInstance == null) {
+    				reusedInstance = rowClass.newInstance();
+    			} else {
+    				reset.invoke(reusedInstance);
+    			}
+    			instance = reusedInstance;
+    		} else {
+    			instance = rowClass.newInstance();
+    		}
+            T next = (T) loader.load(cursor, instance);
             moreToCome = cursor.moveToNext();
             if ( !moreToCome ) {
             	cursor.close();

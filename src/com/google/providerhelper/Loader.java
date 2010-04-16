@@ -25,13 +25,14 @@ import android.database.Cursor;
  * Cursor object.
  * 
  * <p>
- * To use it, extend this class, and for each ContentProvider column name (e.g.
+ * To use it, create a POJO instance that represents your rows, and for each ContentProvider column name (e.g.
  * "foo") which you wish to process, provide a method named setFoo(), i.e., the
  * field's name capitalized and prefixed by "set". This method must take one
  * argument, which must be of type int, long, String, float, or double,
  * depending on the type provided by the ContentProvider, which you have to know
  * because the ContentProvider doesn't expose them. If you want to process the
  * _id field, provide a set_id method.
+ * Then instanciate a Loader parametrized with the type of your POJO instance
  * </p>
  * 
  * <p>
@@ -59,7 +60,7 @@ import android.database.Cursor;
  * </p>
  * 
  * <pre>
- *  public class Call extends Builder {
+ *  public class Call {
  *    String phoneNumber;
  *    String date;
  *    public void setNumber(String number) {
@@ -82,10 +83,11 @@ import android.database.Cursor;
  * 
  * @see Reader
  */
-public abstract class Builder {
+public class Loader<T> {
 
     private static Method[] setters = null;
     private static Class<?> currentClass = null;
+    private T instance = null;
     private static int[] types = null;
     private static final Class<?>[] classes = { Integer.TYPE, String.class,
             Long.TYPE, Float.TYPE, Double.TYPE };
@@ -101,17 +103,17 @@ public abstract class Builder {
      * 
      * @hide
      */
-    public Builder() {
+    public Loader() {
     }
 
     /**
-     * Any class which extends Builder may use this as a constructor.
+     * Any class which extends Loader may use this as a constructor.
      * 
      * @param cursor
      *            An android.database.Cursor associated with a Content Provider
      */
-    public Builder(Cursor cursor) {
-        load(cursor);
+    public Loader(Cursor cursor, T instance) {
+        load(cursor, instance);
     }
 
     /**
@@ -124,8 +126,8 @@ public abstract class Builder {
      *            An android.database.Cursor associated with a Content Provider
      * @return the object that was loaded up.
      */
-    public Object load(Cursor cursor) {
-        findSetters(cursor);
+    public T load(Cursor cursor, T instance) {
+        findSetters(cursor, instance);
 
         try {
             for (int i = 0; i < setters.length; i++) {
@@ -133,19 +135,19 @@ public abstract class Builder {
                     continue;
                 switch (types[i]) {
                 case STRING_TYPE:
-                    setters[i].invoke(this, cursor.getString(i));
+                    setters[i].invoke(instance, cursor.getString(i));
                     break;
                 case INTEGER_TYPE:
-                    setters[i].invoke(this, cursor.getInt(i));
+                    setters[i].invoke(instance, cursor.getInt(i));
                     break;
                 case LONG_TYPE:
-                    setters[i].invoke(this, cursor.getLong(i));
+                    setters[i].invoke(instance, cursor.getLong(i));
                     break;
                 case FLOAT_TYPE:
-                    setters[i].invoke(this, cursor.getFloat(i));
+                    setters[i].invoke(instance, cursor.getFloat(i));
                     break;
                 case DOUBLE_TYPE:
-                    setters[i].invoke(this, cursor.getDouble(i));
+                    setters[i].invoke(instance, cursor.getDouble(i));
                     break;
                 }
             }
@@ -153,13 +155,13 @@ public abstract class Builder {
             throw new RuntimeException(e);
         }
 
-        return this;
+        return instance;
     }
 
-    private void findSetters(Cursor cursor) {
+    private void findSetters(Cursor cursor, T instance) {
         if (getClass() == currentClass)
             return;
-        currentClass = getClass();
+        currentClass = instance.getClass();
         String[] cols = cursor.getColumnNames();
         setters = new Method[cols.length];
 
