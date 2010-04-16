@@ -1,6 +1,15 @@
 Note this is a fork of  http://code.google.com/p/providerhelper/
 
-Here are some performance results given the following test code:
+Changes:
+* experiment #1
+** make row class and Builder more independent. The Builder becomes a Loader
+** add a way to reuse and reset row instances to avoid memory allocations
+* experiment #2
+** move Loader into GenericLoader, allow Reader to use a different kind of Loader (e.g. hardcoded)
+
+Here are some performance results given the following test code.
+
+Experiment #1
 
 // had to make the class static otherwise inner class couldn't get instanciated properly
 
@@ -90,6 +99,8 @@ First conclusions
 * performance is about x10 slower compared to raw Android Cursor usage due to reflection
 
 
+Experiment #2
+
 What if we use a hardcoded Loader ?
 
 I.e.
@@ -134,4 +145,39 @@ We get almost best of both world:
 * code easy to read.
 
 I haven't reenabled the memory reuse part of the Loader. Maybe it would be useful now...
+Another idea would be to not have POJOs at all, keep a Reader that returns Iterators and let the Builder dynamically return the fields using setters.
+
+class CallCursor {
+  Cursor cursor;
+  
+  Call(Cursor c) {
+    this.cursor = cursor;
+  }
+  
+  String getPhoneNumber() {
+    return cursor.getString(cursor.getColumnIndex(CallLog.Calls.NUMBER));
+  }
+
+  String getDate() {
+    return cursor.getLong(cursor.getColumnIndex(CallLog.Calls.DATE));
+  }
+}
+
+class Reader implements Iterator<T>, Iterable<T> {
+
+   // ...
+
+    public T next() {
+        try {
+        	T instance = rowClass.newInstance(cursor);
+            moreToCome = cursor.moveToNext();
+            if ( !moreToCome ) {
+            	cursor.close();
+            }
+            return next;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
 
