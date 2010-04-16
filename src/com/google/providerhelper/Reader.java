@@ -45,9 +45,6 @@ public class Reader<T> implements Iterator<T>, Iterable<T> {
 	private Loader<T> loader;
     private Class<T> rowClass;
     private Cursor cursor;
-    private boolean reuseInstances;
-    private Method reset = null; // only used when reusing instances
-    private T reusedInstance; //
     private boolean moreToCome;
 
     /**
@@ -62,19 +59,14 @@ public class Reader<T> implements Iterator<T>, Iterable<T> {
      * @param u
      *            The Uri which identifies the Content Provider to load from.
      */
-    public Reader(Class<T> rowClass, Context c, Uri u, boolean reuseInstances) {
+    public Reader(Class<T> rowClass, Context c, Uri u) {
 		this.loader = new Loader<T>();
         this.rowClass = rowClass;
-        this.reuseInstances = reuseInstances;
         try {
-            if (reuseInstances) {
-            	// FIXME use an interface instead
-    			this.reset = rowClass.getMethod("reset");
-            }
             cursor = c.getContentResolver().query(u, null, null, null, null);
             moreToCome = cursor == null ? false : cursor.moveToFirst();
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException("When you want to reuse your instances, your class should implement a reset() method.", e);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -98,17 +90,7 @@ public class Reader<T> implements Iterator<T>, Iterable<T> {
 
     public T next() {
         try {
-        	T instance;
-    		if (reuseInstances) {
-    			if (this.reusedInstance == null) {
-    				reusedInstance = rowClass.newInstance();
-    			} else {
-    				reset.invoke(reusedInstance);
-    			}
-    			instance = reusedInstance;
-    		} else {
-    			instance = rowClass.newInstance();
-    		}
+        	T instance = rowClass.newInstance();
             T next = (T) loader.load(cursor, instance);
             moreToCome = cursor.moveToNext();
             if ( !moreToCome ) {

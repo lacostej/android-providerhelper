@@ -77,11 +77,11 @@ Took 6038ms. false 500
 Took 5574ms. false 500
 Took 5485ms. false 500
 
-* with memory reuse
+* with memory reuse (code supporting this feature was removed)
 Took 5441ms. true 500
 Took 5593ms. true 500
 Took 5463ms. true 500
 
 Conclusions
-* memory reuse doesn't help
+* memory reuse doesn't help, so I took the code out
 * performance is about x10 slower compared to raw Android Cursor usage due to reflection
