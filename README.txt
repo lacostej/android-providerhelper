@@ -82,6 +82,53 @@ Took 5441ms. true 500
 Took 5593ms. true 500
 Took 5463ms. true 500
 
-Conclusions
+First conclusions
 * memory reuse doesn't help, so I took the code out
 * performance is about x10 slower compared to raw Android Cursor usage due to reflection
+
+
+What if we use a hardcoded Loader ?
+
+I.e.
+
+    public static class CallLoader implements Loader<Call> {
+		public Call load(Cursor cursor, Call instance) {
+  		  instance.setNumber(cursor.getString(cursor.getColumnIndex(CallLog.Calls.NUMBER)));
+  		  instance.setDate(cursor.getLong(cursor.getColumnIndex(CallLog.Calls.DATE)));
+		  return instance;
+		}
+    }
+    
+    and
+    
+      	Reader<Call> calls = new Reader<Call>(new CallLoader(), Call.class, this.getApplicationContext(), CallLog.Calls.CONTENT_URI);
+    	 for (Call call : calls) {
+    	     call.toString();
+    	     counter++;
+    	 }    	
+
+
+I've implemented and test it and here are the new performance tests:
+* GenericLoader
+I/Talkmore(12584): Took 8092ms. 1 500
+I/Talkmore(12584): Took 5429ms. 1 500
+I/Talkmore(12584): Took 5687ms. 1 500
+
+* hardcoded loader
+I/Talkmore(12584): Took 426ms. 2 500
+I/Talkmore(12584): Took 680ms. 2 500
+I/Talkmore(12584): Took 558ms. 2 500
+
+* default android framework
+I/Talkmore(12584): Took 504ms. 3 500
+I/Talkmore(12584): Took 368ms. 3 500
+I/Talkmore(12584): Took 374ms. 3 500
+
+
+We get almost best of both world:
+
+* good performance (almost no reflection)
+* code easy to read.
+
+I haven't reenabled the memory reuse part of the Loader. Maybe it would be useful now...
+

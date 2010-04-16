@@ -39,7 +39,7 @@ import android.net.Uri;
  * }
  * </pre>
  * 
- * @see Loader
+ * @see GenericLoader
  */
 public class Reader<T> implements Iterator<T>, Iterable<T> {
 	private Loader<T> loader;
@@ -60,7 +60,7 @@ public class Reader<T> implements Iterator<T>, Iterable<T> {
      *            The Uri which identifies the Content Provider to load from.
      */
     public Reader(Class<T> rowClass, Context c, Uri u) {
-		this.loader = new Loader<T>();
+		this.loader = new GenericLoader<T>();
         this.rowClass = rowClass;
         try {
             cursor = c.getContentResolver().query(u, null, null, null, null);
@@ -70,6 +70,16 @@ public class Reader<T> implements Iterator<T>, Iterable<T> {
         }
     }
 
+    public Reader(Loader<T> loader, Class<T> rowClass, Context c, Uri u) {
+		this.loader = loader;
+        this.rowClass = rowClass;
+        try {
+            cursor = c.getContentResolver().query(u, null, null, null, null);
+            moreToCome = cursor == null ? false : cursor.moveToFirst();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
     /**
      * Creates a reader given a class to load and a Cursor to read from.
      * 
