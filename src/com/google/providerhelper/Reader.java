@@ -19,7 +19,7 @@ package com.google.providerhelper;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 
-import android.app.Activity;
+import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 
@@ -54,17 +54,17 @@ public class Reader<T extends Builder> implements Iterator<T>, Iterable<T> {
      * @param row
      *            The class of the object which is to be loaded. Must extend
      *            Builder.
-     * @param a
-     *            The current activity.
+     * @param c
+     *            The current context.
      * @param u
      *            The Uri which identifies the Content Provider to load from.
      */
-    public Reader(Class<T> rowClass, Activity a, Uri u) {
+    public Reader(Class<T> rowClass, Context c, Uri u) {
         this.rowClass = rowClass;
         try {
             loader = rowClass.getMethod("load", Cursor.class);
-            cursor = a.managedQuery(u, null, null, null, null);
-            moreToCome = cursor.moveToFirst();
+            cursor = c.getContentResolver().query(u, null, null, null, null);
+            moreToCome = cursor == null ? false : cursor.moveToFirst();
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
@@ -98,6 +98,9 @@ public class Reader<T extends Builder> implements Iterator<T>, Iterable<T> {
         try {
             T next = (T) loader.invoke(rowClass.newInstance(), cursor);
             moreToCome = cursor.moveToNext();
+            if ( !moreToCome ) {
+            	cursor.close();
+            }
             return next;
         } catch (Exception e) {
             throw new RuntimeException(e);
