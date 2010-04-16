@@ -68,6 +68,7 @@ Here are some performance results given the following test code:
      	Log.i(LOG_TAG, "Took " + (System.currentTimeMillis() - start) + "ms. " + reuse + " " + counter);
     }
 
+(Tested on my ADP1)
 
 * default android framework
 Took 507ms. 3 500
