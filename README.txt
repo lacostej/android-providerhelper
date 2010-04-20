@@ -181,3 +181,11 @@ class Reader implements Iterator<T>, Iterable<T> {
     }
 }
 
+Update: 20/04/2010
+
+I've tried to make a combination of the Iterator design and a hardcoded pre-generated Loader class.
+I don't mind the one time cost code generation if that allows me to benefit from the coding style. Best of both worlds ? Good enough for me.
+I've ran into issues. See LoaderGenerator for code and links.
+Yet it seems that a simple ORM generator, a la ibator for ibatis, could be an interesting solution.
+
+
